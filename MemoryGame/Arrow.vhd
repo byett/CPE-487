@@ -11,9 +11,7 @@ ENTITY Arrow IS
         --red         : OUT STD_LOGIC;
         --green       : OUT STD_LOGIC; --DONE IN vga_top
         --blue        : OUT STD_LOGIC;
-		x_displacement : IN INTEGER;  -- Assuming these should be integer
-        y_displacement : IN INTEGER;
-        arrow_direction : IN INTEGER range 0 to 4
+        arrow_direction : IN INTEGER range 1 to 4
 	);
 END Arrow;
 
@@ -29,21 +27,25 @@ ARCHITECTURE Behavioral OF Arrow IS
 	BEGIN 	-- Behav start
 	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col) IS
 	BEGIN
---	IF (pixel_col >= ball_x - size) AND
-	--	 (pixel_col <= ball_x + size) AND
-	--		 (pixel_row >= ball_y - size) AND
-	--		 (pixel_row <= ball_y + size) THEN
-	--			ball_on <= '1';
-	--	ELSE
-		--	ball_on <= '0';
-		--END IF;
-	
-
 
 	-- process to draw ball current pixel address is covered by ball position
-
-    IF (arrow_direction = 1) THEN
-    -- Implement arrow_draw for up arrow
+   IF (arrow_direction = 1) THEN
+            IF (pixel_col >= ball_x AND
+                pixel_row <= ball_y AND
+                pixel_row >= ball_y + (pixel_col - ball_x) - size) THEN
+                       ball_on <= '1';
+            ELSIF (pixel_col <= ball_x AND
+                   pixel_row <= ball_y AND
+                   pixel_row >= ball_y + (ball_x - pixel_col) - size) THEN
+                        ball_on <= '1';
+            ELSIF (pixel_col >= ball_x - size/2) AND
+                  (pixel_col <= ball_x + size/2) AND
+                  (CONV_INTEGER(pixel_row) >= CONV_INTEGER(ball_y)+60 - size) AND
+                  (CONV_INTEGER(pixel_row) <= CONV_INTEGER(ball_y)+60 + size) THEN
+                        ball_on <= '1';
+            ELSE
+                ball_on <= '0';
+            END IF;
     ELSIF (arrow_direction = 2) THEN
  
     -- Implement arrow_draw for down arrow
