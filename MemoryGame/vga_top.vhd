@@ -51,7 +51,7 @@ ARCHITECTURE Behavioral OF vga_top IS
             red         : OUT STD_LOGIC;
             green       : OUT STD_LOGIC; -- NEEDS TO BE DONE IN Arrow TO WORK WITH NOT ball_on
             blue        : OUT STD_LOGIC; -- THAT WAS A PAINFUL MISTAKE DOING IT THROUGH s_rgb IN FSM
-            color_chosen : IN INTEGER range 1 to 3 := 2; -- PRECAUTIONARY GREEN SCREEN IN CASE FSM BREAKS
+            color_chosen : IN INTEGER range 1 to 3; -- PRECAUTIONARY GREEN SCREEN IN CASE FSM BREAKS
             arrow_direction : IN INTEGER range 1 to 4 --5th state for no arrow not needed thanks to output_logic
             
         );
