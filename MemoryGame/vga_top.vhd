@@ -18,8 +18,8 @@ ARCHITECTURE Behavioral OF vga_top IS
     -- internal signals to connect modules
     SIGNAL S_red, S_green, S_blue : STD_LOGIC;
     SIGNAL S_vsync : STD_LOGIC;
-    SIGNAL x_displacement,y_displacement,arrow_direction : STD_LOGIC := '0';
     SIGNAL S_pixel_row, S_pixel_col : STD_LOGIC_VECTOR (10 DOWNTO 0);
+    
     COMPONENT Arrow IS
         PORT (
             v_sync : IN STD_LOGIC;
@@ -27,7 +27,9 @@ ARCHITECTURE Behavioral OF vga_top IS
             pixel_col : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
             red : OUT STD_LOGIC;
             green : OUT STD_LOGIC;
-            blue : OUT STD_LOGIC
+            blue : OUT STD_LOGIC;
+            x_displacement,y_displacement : IN INTEGER;
+            arrow_direction : IN INTEGER range 0 to 4
         );
     END COMPONENT;
     COMPONENT vga_sync IS
@@ -62,11 +64,11 @@ BEGIN
     vga_green(1 DOWNTO 0) <= "00";
     vga_blue(0) <= '0';
 
-    add_Arrow_TOP : Arrow
+    add_arrow_UP : Arrow
     PORT MAP(
-        x_displacement => '0',
-        y_displacement => "100",
-        arrow_direction => '1',
+        x_displacement => 0,
+        y_displacement => 100,
+        arrow_direction => 1,
         v_sync    => S_vsync, 
         pixel_row => S_pixel_row, 
         pixel_col => S_pixel_col, 
@@ -74,11 +76,11 @@ BEGIN
         green     => S_green, 
         blue      => S_blue
     );
-    add_Arrow_BOTTOM : Arrow
+    add_arrow_DOWN : Arrow
     PORT MAP(
-        x_displacement => '0',
-        y_displacement => "200",
-        arrow_direction => '2',
+        x_displacement => 0,
+        y_displacement => 200,
+        arrow_direction => 2,
         v_sync    => S_vsync, 
         pixel_row => S_pixel_row, 
         pixel_col => S_pixel_col, 
@@ -86,11 +88,11 @@ BEGIN
         green     => S_green, 
         blue      => S_blue
     );
-    add_Arrow_LEFT : Arrow
+    add_arrow_LEFT : Arrow
     PORT MAP(
-        x_displacement => '100',
-        y_displacement => "100",
-        arrow_direction => '3',
+        x_displacement => 100,
+        y_displacement => 100,
+        arrow_direction => 3,
         v_sync    => S_vsync, 
         pixel_row => S_pixel_row, 
         pixel_col => S_pixel_col, 
@@ -98,11 +100,11 @@ BEGIN
         green     => S_green, 
         blue      => S_blue
     );
-    add_Arrow_RIGHT : Arrow
+    add_arrow_RIGHT : Arrow
     PORT MAP(
-        x_displacement => '200',
-        y_displacement => "100",
-        arrow_direction => '4',
+        x_displacement => 200,
+        y_displacement => 100,
+        arrow_direction => 4,
         v_sync    => S_vsync, 
         pixel_row => S_pixel_row, 
         pixel_col => S_pixel_col, 
