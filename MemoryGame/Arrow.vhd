@@ -53,8 +53,23 @@ ARCHITECTURE Behavioral OF Arrow IS
     ELSIF (arrow_direction = 3) THEN
     -- Implement arrow_draw for left arrow
  
-    ELSIF (arrow_direction = 4) THEN
-    -- Implement arrow_draw for down arrow
+    ELSIF (arrow_direction = 4) THEN --RIGHT ARROW
+	            IF (pixel_col >= ball_x AND
+	            pixel_row <= ball_y AND
+	            pixel_row >= ball_y - (ball_x - pixel_col) - size) THEN
+	                ball_on <= '1';
+	        ELSIF (pixel_col >= ball_x AND
+	               pixel_row >= ball_y AND
+	               pixel_row <= ball_y + (ball_x - pixel_col) + size) THEN
+	                    ball_on <= '1';
+	        ELSIF (pixel_col >= (ball_x-60) - size) AND
+	              (pixel_col <= (ball_x-60) + size) AND
+	              (pixel_row >= ball_y - size/2) AND
+	              (pixel_row <= ball_y + size/2) THEN
+	                    ball_on <= '1';
+	        ELSE
+	            ball_on <= '0';
+	        END IF;
  
     ELSE
     -- No arrow shows
