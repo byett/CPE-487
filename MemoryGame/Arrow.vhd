@@ -5,12 +5,12 @@ USE IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 ENTITY Arrow IS
 	PORT (
-		v_sync    : IN STD_LOGIC;
-		pixel_row : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
-		pixel_col : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
-		red       : OUT STD_LOGIC;
-		green     : OUT STD_LOGIC;
-		blue      : OUT STD_LOGIC;
+        v_sync      : IN  STD_LOGIC;
+        pixel_row   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
+        pixel_col   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
+        --red         : OUT STD_LOGIC;
+        --green       : OUT STD_LOGIC; --DONE IN vga_top
+        --blue        : OUT STD_LOGIC;
 		x_displacement : IN INTEGER;  -- Assuming these should be integer
         y_displacement : IN INTEGER;
         arrow_direction : IN INTEGER range 0 to 4
@@ -24,41 +24,40 @@ ARCHITECTURE Behavioral OF Arrow IS
 	SIGNAL ball_x  : STD_LOGIC_VECTOR(10 DOWNTO 0) := CONV_STD_LOGIC_VECTOR(400, 11);
 	SIGNAL ball_y  : STD_LOGIC_VECTOR(10 DOWNTO 0) := CONV_STD_LOGIC_VECTOR(300, 11);
 	-- current ball motion - initialized to +4 pixels/frame
-	SIGNAL ball_y_motion : STD_LOGIC_VECTOR(10 DOWNTO 0) := "00000000100";
-BEGIN
-	red <= '1'; -- color setup for red ball on white background
-	green <= NOT ball_on;
-	blue  <= NOT ball_on;
-	-- process to draw ball current pixel address is covered by ball position
-	bdraw : PROCESS (ball_x, ball_y, pixel_row, pixel_col) IS
+	SIGNAL ball_y_motion : STD_LOGIC_VECTOR(10 DOWNTO 0) := "00000000000";
+	
+	BEGIN 	-- Behav start
+	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col) IS
 	BEGIN
-    IF (arrow_direction = 1) THEN
-    red <= '1';
-    ELSIF (arrow_direction = 2) THEN
-    red <= '1';
-    -- DO NOTHING
-    
-    ELSIF (arrow_direction = 3) THEN
-    -- DO NOTHING YET
-    red <= '1';
-    ELSIF (arrow_direction = 4) THEN
-    -- DO NOTING YET
-    red <= '1';
-    ELSE
-    -- ur screwed
-    red <= '1';
-    END IF;
-    END PROCESS;
-
-		--IF (pixel_col >= ball_x - size) AND
-		 --(pixel_col <= ball_x + size) AND
-		--	 (pixel_row >= ball_y - size) AND
-		--	 (pixel_row <= ball_y + size) THEN
-		--		ball_on <= '1';
+--	IF (pixel_col >= ball_x - size) AND
+	--	 (pixel_col <= ball_x + size) AND
+	--		 (pixel_row >= ball_y - size) AND
+	--		 (pixel_row <= ball_y + size) THEN
+	--			ball_on <= '1';
 	--	ELSE
 		--	ball_on <= '0';
-		--END IF;	
+		--END IF;
 	
-		-- process to move ball once every frame (i.e. once every vsync pulse)
+
+
+	-- process to draw ball current pixel address is covered by ball position
+
+    IF (arrow_direction = 1) THEN
+    -- Implement arrow_draw for up arrow
+    ELSIF (arrow_direction = 2) THEN
+ 
+    -- Implement arrow_draw for down arrow
+    
+    ELSIF (arrow_direction = 3) THEN
+    -- Implement arrow_draw for left arrow
+ 
+    ELSIF (arrow_direction = 4) THEN
+    -- Implement arrow_draw for down arrow
+ 
+    ELSE
+    -- No arrow shows
+   
+    END IF;
+    END PROCESS;
 
 END Behavioral;
