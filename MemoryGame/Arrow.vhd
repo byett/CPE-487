@@ -46,15 +46,42 @@ ARCHITECTURE Behavioral OF Arrow IS
             ELSE
                 ball_on <= '0';
             END IF;
-    ELSIF (arrow_direction = 2) THEN
- 
-    -- Implement arrow_draw for down arrow
-    
-    ELSIF (arrow_direction = 3) THEN
-    -- Implement arrow_draw for left arrow
- 
+    ELSIF (arrow_direction = 2) THEN --DOWN ARROW
+            IF (pixel_col >= ball_x AND
+            	pixel_row >= ball_y AND
+            	pixel_row <= ball_y - (pixel_col - ball_x) + size) THEN
+                	ball_on <= '1';
+            ELSIF (pixel_col <= ball_x AND
+            	   pixel_row >= ball_y AND
+            	   pixel_row <= ball_y - (ball_x - pixel_col) + size) THEN
+                	ball_on <= '1';
+            ELSIF (pixel_col >= ball_x - size/2) AND
+              	  (pixel_col <= ball_x + size/2) AND
+              	  (CONV_INTEGER(pixel_row) >= CONV_INTEGER(ball_y)-60 - size) AND
+              	  (CONV_INTEGER(pixel_row) <= CONV_INTEGER(ball_y)-60 + size) THEN
+                    	ball_on <= '1';
+            ELSE
+            	ball_on <= '0';
+            END IF;
+    ELSIF (arrow_direction = 3) THEN --LEFT ARROW
+    	    IF (pixel_col <= ball_x AND
+            	pixel_row >= ball_y AND
+            	pixel_row <= ball_y + (pixel_col - ball_x) + size) THEN
+                	ball_on <= '1';
+            ELSIF (pixel_col <= ball_x AND
+                   pixel_row <= ball_y AND
+                   pixel_row >= ball_y - (pixel_col - ball_x) - size) THEN
+                       ball_on <= '1';
+            ELSIF (pixel_col >= (ball_x+60) - size) AND
+              	  (pixel_col <= (ball_x+60) + size) AND
+              	  (pixel_row >= ball_y - size/2) AND
+              	  (pixel_row <= ball_y + size/2) THEN
+                    	ball_on <= '1';
+            ELSE
+            	ball_on <= '0';
+            END IF;
     ELSIF (arrow_direction = 4) THEN --RIGHT ARROW
-	            IF (pixel_col >= ball_x AND
+	        IF (pixel_col >= ball_x AND
 	            pixel_row <= ball_y AND
 	            pixel_row >= ball_y - (ball_x - pixel_col) - size) THEN
 	                ball_on <= '1';
@@ -70,7 +97,6 @@ ARCHITECTURE Behavioral OF Arrow IS
 	        ELSE
 	            ball_on <= '0';
 	        END IF;
- 
     ELSE
     -- No arrow shows
    
