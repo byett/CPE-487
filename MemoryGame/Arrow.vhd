@@ -25,7 +25,7 @@ ARCHITECTURE Behavioral OF Arrow IS
 	
 	BEGIN 	-- Behav start
 	
-	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col) IS
+	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col, arrow_direction, color_chosen) IS
 	BEGIN
 	--	red <= '1';
    -- green <= NOT ball_on;
