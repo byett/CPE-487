@@ -8,9 +8,10 @@ ENTITY Arrow IS
         v_sync      : IN  STD_LOGIC;
         pixel_row   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
         pixel_col   : IN  STD_LOGIC_VECTOR(10 DOWNTO 0);
-        --red         : OUT STD_LOGIC;
-        --green       : OUT STD_LOGIC; --DONE IN vga_top
-        --blue        : OUT STD_LOGIC;
+        red         : OUT STD_LOGIC := '1';
+        green       : OUT STD_LOGIC := '0';
+        blue        : OUT STD_LOGIC := '1';
+        color_chosen : IN INTEGER range 1 to 3;
         arrow_direction : IN INTEGER range 1 to 4
 	);
 END Arrow;
@@ -26,8 +27,29 @@ ARCHITECTURE Behavioral OF Arrow IS
 	
 	BEGIN 	-- Behav start
 	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col) IS
-	BEGIN
-
+	BEGIN -- 1 for red, 2 for green, 3 for blue
+    IF (color_chosen = 1) THEN
+    
+        red <= '1'; -- color setup for red ball on white background
+        green <= NOT ball_on;
+        blue  <= NOT ball_on;
+    ELSIF (color_chosen = 2) THEN
+    
+        red <= NOT ball_on; -- color setup for red ball on white background
+        green <= '1';
+        blue  <= NOT ball_on;
+    ELSIF (color_chosen = 3) THEN
+    
+        red <= NOT ball_on; -- color setup for red ball on white background
+        green <= NOT ball_on;
+        blue  <= '1';
+    ELSE
+    --We have a problem
+        red <= '0';
+        green <= '0';
+        blue <= '0';
+    END IF;    
+    
 	-- process to draw ball current pixel address is covered by ball position
    IF (arrow_direction = 1) THEN
             IF (pixel_col >= ball_x AND
