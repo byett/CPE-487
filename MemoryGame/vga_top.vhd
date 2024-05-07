@@ -1,6 +1,8 @@
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.STD_LOGIC_UNSIGNED.ALL;
+USE IEEE.NUMERIC_STD.ALL;
+
 
 ENTITY vga_top IS
     PORT (
@@ -25,10 +27,19 @@ ARCHITECTURE Behavioral OF vga_top IS
     SIGNAL S_red, S_green, S_blue : STD_LOGIC; --Will input values for vga_sync's red_in etc.
     SIGNAL S_vsync : STD_LOGIC; --Will input values for vga_sync's vsync_in
     SIGNAL S_pixel_row, S_pixel_col : STD_LOGIC_VECTOR (10 DOWNTO 0); -- Same stuff here
-    SIGNAL x_displacement_FSM, y_displacement_FSM : INTEGER:=0; -- Temporary value to input into Arrow portmap's x_displacement etc.
-    SIGNAL arrow_direction_FSM : INTEGER range 0 to 4:=0; -- Temporary value to input into Arrow portmap's arrow_direction etc.
+    SIGNAL arrow_direction_FSM : INTEGER range 1 to 4; -- Temporary value to input into Arrow portmap's arrow_direction etc.
     TYPE state IS (GAME_OUTPUT, IDLE, SHOW_ARROW, CHECK_INPUT, NEXT_LEVEL); -- State of game
     SIGNAL current_state, next_state : state := IDLE; -- State of game
+
+    -- The good stuff
+    SIGNAL rand_reg : std_logic_vector(31 downto 0) := x"12345678";
+    SIGNAL random_number : integer range 1 to 4;
+    constant MAX_SEQ_LENGTH : integer := 20; -- If you go past this point congrats you broke my game
+    type seq_array is array (0 to MAX_SEQ_LENGTH-1) of integer range 1 to 4;
+    signal sequence : seq_array := (others => 1);
+    signal seq_len : integer := 0;
+    signal seq_index : integer := 0;
+    signal display_timer : integer := 0;
 
     COMPONENT Arrow IS
         PORT (
@@ -38,15 +49,14 @@ ARCHITECTURE Behavioral OF vga_top IS
             --red         : OUT STD_LOGIC;
             --green       : OUT STD_LOGIC; --red -> s_red not needed anymore
             --blue        : OUT STD_LOGIC; -- done directly from fsm
-            x_displacement,y_displacement : IN INTEGER;
-            arrow_direction : IN INTEGER range 0 to 4 --5th state for no arrow not needed thanks to output_logic
+            arrow_direction : IN INTEGER range 1 to 4 --5th state for no arrow not needed thanks to output_logic
             
         );
     END COMPONENT;
     COMPONENT vga_sync IS
         PORT (
             pixel_clk : IN STD_LOGIC;
-            red_in    : IN STD_LOGIC; 
+            red_in    : IN STD_LOGIC;
             green_in  : IN STD_LOGIC;
             blue_in   : IN STD_LOGIC;
             red_out   : OUT STD_LOGIC;
@@ -65,117 +75,109 @@ ARCHITECTURE Behavioral OF vga_top IS
       clk_out1 : out std_logic
     );
     end component;
+      -- ALL COMPONENTS ABOVE THIS POINT
+BEGIN --BEGIN 
+    vga_red(1 DOWNTO 0) <= "00";
+    vga_green(1 DOWNTO 0) <= "00"; --REQUIRED TO MAKE RGB WORK
+    vga_blue(0) <= '0'; --VIA HERE UTILIZE S_red, S_green, S_blue
     
     
-BEGIN
+    -- Pseudo-random number generator process
+PRNG: process(pxl_clk, reset)
+begin
+    if reset = '1' then
+        rand_reg <= (others => '0');
+    elsif rising_edge(pxl_clk) then
+        rand_reg <= rand_reg(30 downto 0) & (rand_reg(31) xor rand_reg(3));
+        random_number <= to_integer(unsigned(rand_reg(31 downto 30))) mod 4 + 1;  -- Properly using to_integer and unsigned
+    end if;
+end process;
     
-	MemoryGameFSM: PROCESS (clk, reset) --current_state/next_state governing
-    BEGIN
-    IF reset = '1' THEN
-                current_state <= GAME_OUTPUT;
-            ELSIF rising_edge(clk) THEN
-                current_state <= next_state;
-            END IF;
-        END PROCESS MemoryGameFSM;
+	--THE GAME FSM LOGIC
+    MemoryGameLogic: process(current_state, btn_up, btn_down, btn_left, btn_right)
+    begin
+        case current_state is
+            when IDLE =>
+                if (btn_up = '1' or btn_down = '1' or btn_left = '1' or btn_right = '1') and seq_len = 0 then --seq_len set to 0 on fail
+                    seq_len <= 1;
+                    sequence(0) <= random_number;
+                    next_state <= GAME_OUTPUT;
+                end if;
 
-        -- Define state transitions and outputs
-        MemoryGameLogic: PROCESS (current_state, btn_up, btn_down, btn_left, btn_right) --FSM PURELY FOR USER INPUT, REPEAT FOR GAME INPUT
-        
-        BEGIN
-        
-            CASE current_state IS
-                WHEN GAME_OUTPUT =>
-                    IF
-                    --utilize CHECK_INPUT/NEXT_LEVEL states to
-                    --Implement random set of pattern integers in array, random values 1-4 for each arrow direction
-                    --Display each arrow in a given order with time in between, when done ask for user to repeat
-                    --and match with the arrows displayed on the screen, must implement matching system with each button press
-                    --Upon achieving this, add to existing pattern that must be matched again
-                    --If fail or reset, reset everything
-                    --Also maybe try to display score or highest pattern high score and other stuff, lots of work though
-                    
-                    ELSE
-                    current_state <= IDLE;
-                WHEN IDLE =>
-                    IF btn_up = '1' THEN -- UP BUTTON PRESS
-                        arrow_direction_FSM <= 1; -- WILL SET TO arrow_direction IN SHOW ARROW STATE
-                        x_displacement_FSM <= 0;
-                        y_displacement_FSM <= 100;
-                       
-                        next_state <= SHOW_ARROW;
-                    ELSIF btn_down = '1' THEN -- DOWN BUTTON PRESS
-                        arrow_direction_FSM <= 2; -- Down
-                        x_displacement_FSM <= 0;
-                        y_displacement_FSM <= 200;
-                    
-                        next_state <= SHOW_ARROW;
-                    ELSIF btn_left = '1' THEN -- LEFT BUTTON PRESS
-                        arrow_direction_FSM <= 3; -- Left
-                        x_displacement_FSM <= 100;
-                        y_displacement_FSM <= 100;
-                        
-                        next_state <= SHOW_ARROW;
-                    ELSIF btn_right = '1' THEN -- RIGHT BUTTON PRESS
-                        arrow_direction_FSM <= 4; -- Right
-                        x_displacement_FSM <= 200;
-                        y_displacement_FSM <= 100;
-                        
-                        next_state <= SHOW_ARROW;
-                    ELSE
-                        next_state <= IDLE;
-                    END IF;
-                WHEN SHOW_ARROW =>
-                    
-                    
-                    
-                    
-                    -- Logic to display arrow based on `arrow_direction`
-                    -- Transition to CHECK_INPUT or directly to IDLE after a delay or a condition
+            when GAME_OUTPUT =>
+                if seq_index < seq_len then
+                    if display_timer = 0 then
+                        arrow_direction_FSM <= sequence(seq_index);
+                        display_timer <= 10;  --Display time for each arrow
+                        S_red <= '1'; S_green <= '0'; S_blue <= '0';  -- Display in red
+                        seq_index <= seq_index + 1;
+                    else
+                        display_timer <= display_timer - 1;
+                    end if;
+                else
+                    seq_index <= 0;
                     next_state <= CHECK_INPUT;
-                WHEN CHECK_INPUT =>
-                    -- Check if the correct button is pressed, transition to NEXT_LEVEL or back to IDLE
-                    next_state <= NEXT_LEVEL;
-                WHEN NEXT_LEVEL =>
-                    -- Prepare the next level, potentially increase difficulty
-                    next_state <= IDLE;
-            END CASE;
-        END PROCESS MemoryGameLogic;
+                end if;
 
-        -- Output logic based on the state
-        output_logic: PROCESS (current_state)
-        BEGIN
-            CASE current_state IS
-                WHEN SHOW_ARROW =>
-                S_red <= '0'; 
+            when SHOW_ARROW =>
+                if display_timer > 0 then
+                    display_timer <= display_timer - 1;
+                else
+                    next_state <= CHECK_INPUT;
+                end if;
+
+            when CHECK_INPUT =>
+                -- Placeholder for user input handling logic
+                -- This will check the input from the user and compare with the sequence
+                next_state <= NEXT_LEVEL;
+
+            when NEXT_LEVEL =>
+                if seq_len < MAX_SEQ_LENGTH then
+                    seq_len <= seq_len + 1;
+                    sequence(seq_len - 1) <= random_number; -- Add new random number to sequence
+                    next_state <= GAME_OUTPUT;
+                else
+                    next_state <= IDLE;  -- Handle game completion or reset
+                end if;
+
+            when others =>
+                next_state <= IDLE;
+        end case;
+    end process;
+
+    -- Output logic based on the state
+    output_logic: PROCESS (current_state)
+    BEGIN
+        CASE current_state IS
+            WHEN SHOW_ARROW =>
+                S_red <= '1';  -- Blue arrow displayed for user
                 S_green <= '0';
-                S_blue <= '1';
-                WHEN OTHERS =>
-                S_red <= '0';
-                S_green <= '0'; --NO ARROW DRAWN
                 S_blue <= '0';
-            END CASE;
-        END PROCESS output_logic;
-        
+            WHEN OTHERS =>
+                S_red <= '0';
+                S_green <= '0';
+                S_blue <= '0'; -- No arrow drawn
+        END CASE;
+    END PROCESS;
+-- ARROW COMPONENT ACCEPTS INPUTS FROM FSM
     addArrow : Arrow
     PORT MAP(
-        x_displacement => x_displacement_FSM,
-        y_displacement => y_displacement_FSM,
         arrow_direction => arrow_direction_FSM,
         v_sync    => S_vsync, 
         pixel_row => S_pixel_row, 
         pixel_col => S_pixel_col
         --red       => S_red, 
-        --green     => S_green, 
+        --green     => S_green, -- changed directly in FSM
         --blue      => S_blue
     );
-   
+--VGA COMPONENT ACCEPTS COLOR FROM FSM
     vga_driver : vga_sync
     PORT MAP(
         --instantiate vga_sync component
         pixel_clk => pxl_clk, 
-        red_in    => S_red, --From FSM
-        green_in  => S_green, --From FSM
-        blue_in   => S_blue, --From FSM
+        red_in    => S_red, 
+        green_in  => S_green, 
+        blue_in   => S_blue, 
         red_out   => vga_red(2), 
         green_out => vga_green(2), 
         blue_out  => vga_blue(1), 
@@ -184,12 +186,13 @@ BEGIN
         hsync     => vga_hsync, 
         vsync     => S_vsync
     );
-    vga_vsync <= S_vsync; --connect output vsync
-        
+    vga_vsync <= S_vsync;
+    
+    
     clk_wiz_0_inst : clk_wiz_0
-    port map (
+    PORT MAP (
       clk_in1 => clk_in,
       clk_out1 => pxl_clk
     );
-    
+
 END Behavioral;
