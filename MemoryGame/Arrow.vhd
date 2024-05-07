@@ -10,7 +10,10 @@ ENTITY Arrow IS
 		pixel_col : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
 		red       : OUT STD_LOGIC;
 		green     : OUT STD_LOGIC;
-		blue      : OUT STD_LOGIC
+		blue      : OUT STD_LOGIC;
+		x_displacement : IN INTEGER;  -- Assuming these should be integer
+        y_displacement : IN INTEGER;
+        arrow_direction : IN INTEGER range 0 to 4
 	);
 END Arrow;
 
@@ -22,7 +25,6 @@ ARCHITECTURE Behavioral OF Arrow IS
 	SIGNAL ball_y  : STD_LOGIC_VECTOR(10 DOWNTO 0) := CONV_STD_LOGIC_VECTOR(300, 11);
 	-- current ball motion - initialized to +4 pixels/frame
 	SIGNAL ball_y_motion : STD_LOGIC_VECTOR(10 DOWNTO 0) := "00000000100";
-	SIGNAL x_displacement,y_displacement,arrow_direction : STD_LOGIC := '0';
 BEGIN
 	red <= '1'; -- color setup for red ball on white background
 	green <= NOT ball_on;
@@ -30,16 +32,16 @@ BEGIN
 	-- process to draw ball current pixel address is covered by ball position
 	bdraw : PROCESS (ball_x, ball_y, pixel_row, pixel_col) IS
 	BEGIN
-    IF (arrow_direction = '1') THEN
-red <= '1';
-    ELSIF (arrow_direction = '2') THEN
+    IF (arrow_direction = 1) THEN
+    red <= '1';
+    ELSIF (arrow_direction = 2) THEN
     red <= '1';
     -- DO NOTHING
     
-    ELSIF (arrow_direction = '3') THEN
+    ELSIF (arrow_direction = 3) THEN
     -- DO NOTHING YET
     red <= '1';
-    ELSIF (arrow_direction = '4') THEN
+    ELSIF (arrow_direction = 4) THEN
     -- DO NOTING YET
     red <= '1';
     ELSE
