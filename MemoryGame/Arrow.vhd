@@ -17,7 +17,7 @@ ENTITY Arrow IS
 END Arrow;
 
 ARCHITECTURE Behavioral OF Arrow IS
-    CONSTANT size  : INTEGER := 8;
+    CONSTANT size  : INTEGER := 100;
     SIGNAL ball_on : STD_LOGIC :='0'; -- indicates whether ball is over current pixel position
     -- current ball position - initialized to center of screen
     SIGNAL ball_x  : STD_LOGIC_VECTOR(10 DOWNTO 0) := CONV_STD_LOGIC_VECTOR(400, 11);
