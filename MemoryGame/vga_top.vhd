@@ -12,8 +12,6 @@ ENTITY vga_top IS
         vga_blue  : OUT STD_LOGIC_VECTOR (1 DOWNTO 0);
         vga_hsync : OUT STD_LOGIC;
         vga_vsync : OUT STD_LOGIC;
-        clk       : IN  STD_LOGIC;
-        reset     : IN  STD_LOGIC; 
        btn_center : IN  STD_LOGIC;
         btn_up    : IN  STD_LOGIC;
         btn_down  : IN  STD_LOGIC;
@@ -28,7 +26,7 @@ ARCHITECTURE Behavioral OF vga_top IS
     SIGNAL S_red, S_green, S_blue : STD_LOGIC; --Will input values for vga_sync's red_in etc.
     SIGNAL S_vsync : STD_LOGIC; --Will input values for vga_sync's vsync_in
     SIGNAL S_pixel_row, S_pixel_col : STD_LOGIC_VECTOR (10 DOWNTO 0); -- Same stuff here
-    SIGNAL arrow_direction_FSM : INTEGER range 1 to 4; -- Temporary value to input into Arrow portmap's arrow_direction etc.
+    SIGNAL arrow_direction_FSM : INTEGER range 1 to 5; -- Temporary value to input into Arrow portmap's arrow_direction etc.
     SIGNAL color_chosen_FSM : INTEGER range 1 to 3; -- Temporary value to input into Arrow portmap's chosen_color etc.
     TYPE state IS (GAME_OUTPUT, IDLE, SHOW_ARROW, CHECK_INPUT, NEXT_LEVEL); -- State of game
     SIGNAL current_state, next_state : state := IDLE; -- State of game
@@ -42,6 +40,7 @@ ARCHITECTURE Behavioral OF vga_top IS
     signal seq_len : integer := 0;
     signal seq_index : integer := 0;
     signal display_timer : integer := 0;
+    signal reset : STD_LOGIC := '0';
 
     COMPONENT Arrow IS
         PORT (
@@ -52,7 +51,7 @@ ARCHITECTURE Behavioral OF vga_top IS
             green       : OUT STD_LOGIC; -- NEEDS TO BE DONE IN Arrow TO WORK WITH NOT ball_on
             blue        : OUT STD_LOGIC; -- THAT WAS A PAINFUL MISTAKE DOING IT THROUGH s_rgb IN FSM
             color_chosen : IN INTEGER range 1 to 3; -- PRECAUTIONARY GREEN SCREEN IN CASE FSM BREAKS
-            arrow_direction : IN INTEGER range 1 to 4 --5th state for no arrow not needed thanks to output_logic
+            arrow_direction : IN INTEGER range 1 to 5 --5th state for no arrow not needed thanks to output_logic
             
         );
     END COMPONENT;
@@ -85,7 +84,7 @@ BEGIN --BEGIN
     vga_blue(0) <= '0';
     
     -- Pseudo-random number generator process
-PRNG: process(pxl_clk, reset)
+PRNG: process(clk_in, reset)
 begin
     if reset = '1' then
         rand_reg <= (others => '0');
@@ -96,15 +95,15 @@ begin
 end process;
     
 -- THE GAME FSM LOGIC including state transition handling
-MemoryGameLogic: process(clk, reset)
+MemoryGameLogic: process(clk_in, reset)
 begin
     if reset = '1' then
         current_state <= IDLE;
         seq_len <= 0;
         seq_index <= 0;
         display_timer <= 0;
-        color_chosen_FSM <= 3; -- Default to blue for game output
-    elsif rising_edge(clk) then
+        color_chosen_FSM <= 3; -- Default to blue for game output not rly needed
+    elsif rising_edge(clk_in) then
         -- Manage state transitions
         current_state <= next_state;  -- Move the state transition here
 
@@ -121,8 +120,8 @@ begin
             when GAME_OUTPUT =>
                 if display_timer = 0 then
                     if seq_index < seq_len then
-                        arrow_direction_FSM <= sequence(seq_index);
                         color_chosen_FSM <= 3; -- Display in blue
+                        arrow_direction_FSM <= sequence(seq_index);
                         display_timer <= 100;  -- Display time for each arrow
                         seq_index <= seq_index + 1;
                     else
