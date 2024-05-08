@@ -28,7 +28,7 @@ ARCHITECTURE Behavioral OF vga_top IS
     SIGNAL S_pixel_row, S_pixel_col : STD_LOGIC_VECTOR (10 DOWNTO 0); -- Same stuff here
     SIGNAL arrow_direction_FSM : INTEGER range 1 to 5; -- Temporary value to input into Arrow portmap's arrow_direction etc.
     SIGNAL color_chosen_FSM : INTEGER range 1 to 3; -- Temporary value to input into Arrow portmap's chosen_color etc.
-    TYPE state IS (GAME_OUTPUT, IDLE, SHOW_ARROW, CHECK_INPUT, NEXT_LEVEL); -- State of game
+    TYPE state IS (GAME_OUTPUT_PRESS, GAME_OUTPUT_RELEASE, USER_INPUT_PRESS, USER_INPUT_RELEASE, IDLE); -- State of game
     SIGNAL current_state, next_state : state := IDLE; -- State of game
 
     -- The good stuff
@@ -36,12 +36,15 @@ ARCHITECTURE Behavioral OF vga_top IS
     SIGNAL random_number : integer range 1 to 4;
     constant MAX_SEQ_LENGTH : integer := 20; -- If you go past this point congrats you broke my game
     type seq_array is array (0 to MAX_SEQ_LENGTH-1) of integer range 1 to 4;
-    signal sequence : seq_array := (others => 1);
-    signal seq_len : integer := 0;
-    signal seq_index : integer := 0;
+    signal sequence : seq_array := (others => 1); -- Will be working in conjunction with game_index
+    signal Manual : seq_array := (2, 3, 4, 1, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3 ,4 ,1, 2, 3, 4);
+    signal user_len : integer := 0; -- current user length
+    signal user_index : integer := 0; -- current user array index
+    signal game_len : integer := 0; -- Current game length
+    signal game_index : integer := 0; -- current game array index
     signal display_timer : integer := 0;
     signal reset : STD_LOGIC := '0';
-
+    signal failed : integer := 0;
     COMPONENT Arrow IS
         PORT (
             v_sync      : IN  STD_LOGIC;
@@ -84,92 +87,132 @@ BEGIN --BEGIN
     vga_blue(0) <= '0';
     
     -- Pseudo-random number generator process
-PRNG: process(clk_in, reset)
-begin
-    if reset = '1' then
-        rand_reg <= (others => '0');
-    elsif rising_edge(pxl_clk) then
-        rand_reg <= rand_reg(30 downto 0) & (rand_reg(31) xor rand_reg(3));
-        random_number <= to_integer(unsigned(rand_reg(31 downto 30))) mod 4 + 1;  -- Properly using to_integer and unsigned
-    end if;
-end process;
+--PRNG: process(clk_in, reset)
+--begin
+--    if reset = '1' then
+--        rand_reg <= (others => '0');
+--    elsif rising_edge(pxl_clk) then
+--        rand_reg <= rand_reg(30 downto 0) & (rand_reg(31) xor rand_reg(3));
+--        random_number <= to_integer(unsigned(rand_reg(31 downto 30))) mod 4 + 1;  -- Properly using to_integer and unsigned
+--        random_number <= to_integer(unsigned(rand_reg(31 downto 30))) mod 4 + 1;  -- Properly using to_integer and unsigned
+--    end if;
+--end process;
     
 -- THE GAME FSM LOGIC including state transition handling
-MemoryGameLogic: process(clk_in, reset)
-begin
-    if reset = '1' then
-        current_state <= IDLE;
-        seq_len <= 0;
-        seq_index <= 0;
-        display_timer <= 0;
-        color_chosen_FSM <= 3; -- Default to blue for game output not rly needed
-    elsif rising_edge(clk_in) then
-        -- Manage state transitions
-        current_state <= next_state;  -- Move the state transition here
 
-        case current_state is
-            when IDLE =>
-                if btn_center = '1' then  -- Game starts on center button press
-                    seq_len <= 1;
-                    sequence(0) <= random_number;
-                    next_state <= GAME_OUTPUT;
-                else
+        MemoryGameRESET : PROCESS (clk_in, reset) -- state machine clock process
+		BEGIN
+			IF (btn_center = '1' and btn_left = '1' and btn_right = '1') THEN -- reset to known state
+				current_state <= IDLE;
+				--current_state <= ENTER_ACC;?
+			ELSIF rising_edge (clk_in) THEN -- on rising clock edge
+			    current_state <= next_state;
+			END IF;
+		END PROCESS;
+		-- state maching combinatorial process
+		-- determines output of state machine and next state
+		MemoryGameLogic: PROCESS (failed, btn_center, btn_up, btn_down, btn_left, btn_right, color_chosen_FSM, arrow_direction_FSM, MANUAL, game_len, game_index, user_index)
+		BEGIN
+            color_chosen_FSM <= 3; --Default
+            game_len <= 0; -- default
+            game_index <= 0;
+            user_index <=0;
+            --user_len<= 0; -- default
+            arrow_direction_FSM <= 5; -- default
+            
+			CASE current_state IS -- depending on present state...
+				WHEN IDLE => -- waiting for next digit in 1st operand entry
+                    -- START THE GAME
+--                    if btn_center = '1' then -- WILL START GAME
+--                    game_len <= 5;    --default 0+1 (Game length is current level array length for user to match)
+--                    game_index <= 0;  --default            (Game Index is game_length - 1 after idle allows for extrapolating each iteration of array length as single value)
+--                    --user_len <= 0;    --default            (User index handles user inputs up until less than game length, user index 19 is game length 20 or game index 19. Therefore)
+--                    user_index <= 0;   --default             (User index must be less than game length - 1, Cannot be less than game index as game index should reset to avoid issues)
+--                    next_state <= GAME_OUTPUT_PRESS;
+--                    else
+--                    next_state <= IDLE;
+--                    end if;
+-- SHOULDNT MATTER EITHER WAY BUT TOP VERSION BREAKS
+                        if btn_center = '1' then -- WILL START GAME
+                        game_len <= 5;    --default 0+1 (Game length is current level array length for user to match)
+                        game_index <= 0;  --default            (Game Index is game_length - 1 after idle allows for extrapolating each iteration of array length as single value)
+                        --user_len <= 0;    --default            (User index handles user inputs up until less than game length, user index 19 is game length 20 or game index 19. Therefore)
+                        user_index <= 0;   --default             (User index must be less than game length - 1, Cannot be less than game index as game index should reset to avoid issues)
+                        next_state <= GAME_OUTPUT_PRESS;
+                        end if;
+				WHEN GAME_OUTPUT_PRESS => -- waiting for center button to be pressed
+				    if (btn_center = '1') then
+				    arrow_direction_FSM <= manual(game_index);--Manual(0)
+				    game_index <= game_index + 1;
+				    --Show first thingy
+				    -- arrow should equal first array(index 0)
+				    next_state <= GAME_OUTPUT_RELEASE; -- On press wait for releast
+				    else
+				    arrow_direction_FSM <= 5; -- On release go to press 
+				    next_state <= GAME_OUTPUT_PRESS; -- No press stay here
+                    end if;
+                    
+				WHEN GAME_OUTPUT_RELEASE => -- waiting for center button to be released
+                    if (btn_center = '0') and (game_index < game_len) then -- if button released, and more arrows yet to be displayed, goto GAME_OUTPUT_RELEASE
+                    next_state <= GAME_OUTPUT_PRESS;
+                    elsif (btn_center = '0') and (game_index >= game_len) then -- if button is released, all arrows have been displayed sucessfully, goto USER_INPUT_PRESS
+                    game_index <= 0; -- RESET GAME INDEX TO COMPARE TO USER INDEX
+                    next_state <= USER_INPUT_PRESS;
+                    else -- IF BUTTON NOT RELEASED YET, STAY HERE UNTIL IT IS
+                    next_state <= GAME_OUTPUT_RELEASE;
+                    end if;
+                   
+                    --Stop showing arrow once released
+                    -- GO BACK TO output press until array displays full array
+                    -- then go to user input portion
+                    -- increment game_index until it reaches game length meaning finally reached
+				WHEN USER_INPUT_PRESS => -- waiting for button ot be released
+                    if (btn_up = '1' OR btn_down = '1' OR btn_left = '1' OR btn_right = '1') THEN
+                            if (btn_up = '1' and manual(game_index) = 1) or
+                               (btn_down = '1' and manual(game_index) = 2) or
+                               (btn_left = '1' and manual(game_index) = 3) or
+                               (btn_right = '1' and manual(game_index) = 4) then
+                               color_chosen_FSM <= 2; --GREEN IS GOOD
+                               arrow_direction_FSM <= manual(game_index); -- CAN USE THIS VALUE BECAUSE WE KNOW WE WERE CORRECT
+                               
+                            else
+                               color_chosen_FSM <= 1;
+                               arrow_direction_FSM <= manual(game_index); -- simply show the correct arrow, but in red    
+                               failed <= 1; -- Necessary to keep wrong red arrow on screen long enough before releasing to enter 
+                            end if;
+                            user_index <= user_index + 1; --Increments both user and game indicies
+                            game_index <= user_index; --user and game index should always equal each other anyways
+                            next_state <= USER_INPUT_RELEASE;
+                             
+                    else
+                    arrow_direction_FSM <= 5;
+                    next_state <= USER_INPUT_PRESS;
+                    end if;
+                    -- Display arrow while user input
+                    -- must increment user length
+                    -- go until user length reaches game length
+                    -- CHECK FIRST IF RIGHT, DISPLAY GREEN IF RIGHT RED IF WRONG                
+                    
+				WHEN USER_INPUT_RELEASE => -- waiting for next digit in 2nd operand
+                    -- STOP SHOWING ARROW, OTHER INCREMENT BS
+                    if (btn_up = '0' and btn_down = '0' and btn_left = '0' and btn_right = '0') and (failed = 1) THEN -- YOU FAILED GAME RESET
+                    arrow_direction_FSM <= 5;
                     next_state <= IDLE;
-                end if;
-
-            when GAME_OUTPUT =>
-                if display_timer = 0 then
-                    if seq_index < seq_len then
-                        color_chosen_FSM <= 3; -- Display in blue
-                        arrow_direction_FSM <= sequence(seq_index);
-                        display_timer <= 100;  -- Display time for each arrow
-                        seq_index <= seq_index + 1;
+                    elsif (btn_up = '0' and btn_down = '0' and btn_left = '0' and btn_right = '0') and (user_index < game_len) THEN -- On release and still need more iterations
+                    arrow_direction_FSM <= 5;
+                    next_state <= USER_INPUT_PRESS;
+                    elsif (btn_up = '0' and btn_down = '0' and btn_left = '0' and btn_right = '0') and (user_index >= game_len) THEN -- On release and finished current level stage
+                    game_len <= game_len + 1;
+                    arrow_direction_FSM <= 5;
+                    next_state <= GAME_OUTPUT_PRESS;
                     else
-                        seq_index <= 0;
-                        next_state <= CHECK_INPUT;
+                    next_state <= USER_INPUT_RELEASE;
                     end if;
-                else
-                    display_timer <= display_timer - 1;
-                end if;
-
-            when CHECK_INPUT =>
-                if (btn_up = '1' and sequence(seq_index) = 1) or
-                   (btn_down = '1' and sequence(seq_index) = 2) or
-                   (btn_left = '1' and sequence(seq_index) = 3) or
-                   (btn_right = '1' and sequence(seq_index) = 4) then
-                    color_chosen_FSM <= 2; -- Correct input: Display in green
-                    if seq_index < seq_len - 1 then
-                        seq_index <= seq_index + 1;
-                        next_state <= SHOW_ARROW; -- Continue to the next arrow
-                    else
-                        next_state <= NEXT_LEVEL; -- All inputs correct
-                    end if;
-                elsif btn_up = '1' or btn_down = '1' or btn_left = '1' or btn_right = '1' then
-                    color_chosen_FSM <= 1; -- Incorrect input: Display in red
-                    next_state <= IDLE; -- Reset the game
-                end if;
-
-            when SHOW_ARROW =>
-                if display_timer > 0 then
-                    display_timer <= display_timer - 1;
-                else
-                    next_state <= CHECK_INPUT; -- Check next input after showing arrow
-                end if;
-
-            when NEXT_LEVEL =>
-                if seq_len < MAX_SEQ_LENGTH then
-                    seq_len <= seq_len + 1;
-                    sequence(seq_len - 1) <= random_number;
-                    next_state <= GAME_OUTPUT;
-                else
-                    next_state <= IDLE;  -- Handle game completion or reset
-                end if;
-
-            when others =>
-                next_state <= IDLE;
-        end case;
-    end if;
-end process;
+               WHEN OTHERS       -- BREAKS THE CODE SOMEHOW?
+                   next_state <= IDLE;
+			END CASE;
+			
+		END PROCESS;
 
 
 -- ARROW COMPONENT ACCEPTS INPUTS FROM FSM
