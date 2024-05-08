@@ -11,7 +11,7 @@ ENTITY Arrow IS
         red             : OUT STD_LOGIC;
         green           : OUT STD_LOGIC;
         blue            : OUT STD_LOGIC;
-        arrow_direction : IN INTEGER range 1 to 4;
+        arrow_direction : IN INTEGER range 1 to 5; -- Fifth integer is for no arrow
         color_chosen    : IN INTEGER range 1 to 3
     );
 END Arrow;
@@ -22,12 +22,12 @@ ARCHITECTURE Behavioral OF Arrow IS
     -- current ball position - initialized to center of screen
     SIGNAL ball_x  : STD_LOGIC_VECTOR(10 DOWNTO 0) := CONV_STD_LOGIC_VECTOR(400, 11);
     SIGNAL ball_y  : STD_LOGIC_VECTOR(10 DOWNTO 0) := CONV_STD_LOGIC_VECTOR(300, 11);
-    
+    SIGNAL red_on, blue_on, green_on : STD_LOGIC := '1';
 	BEGIN 	-- Behav start
 	
-    --red <= '1';
-    --green <= NOT ball_on;
-    --blue <= NOT ball_on;
+    red <= (NOT red_on);
+    green <= (NOT green_on);
+    blue <= (NOT blue_on);
 	
 	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col, arrow_direction, color_chosen, ball_on) IS
 	BEGIN
@@ -100,16 +100,31 @@ ARCHITECTURE Behavioral OF Arrow IS
 	              (pixel_row <= ball_y + size/2) THEN
 	                    ball_on <= '1';
 	        ELSE
-	            ball_on <= '0';
+	            ball_on <= '0'; -- NO ARROW DICTATED BY INTEGER 5
 	        END IF;
     ELSE
-    ball_on <= '0';
-    -- No arrow shows
-   
+    ball_on <= '0'; 
     END IF;
-   -- red <= '1';
-   -- green <= NOT ball_on;
-   -- blue <= NOT ball_on;
+    
+        CASE color_chosen IS
+            WHEN 1 =>
+                red_on <= '1';
+                green_on <= '0';
+                blue_on <= '0';
+            WHEN 2 =>
+                red_on <= '0';
+                green_on <= '1';
+                blue_on <= '0';
+            WHEN 3 =>
+                red_on <= '0';
+                green_on <= '0';
+                blue_on <= '1';
+        END CASE;
+    
     END PROCESS;
+   --red_on <= ball_on WHEN color_chosen = 1;
+   --blue_on <= ball_on WHEN color_chosen = 2;
+   --green_on <= ball_on WHEN color_chosen = 3;
+    
 
 END Behavioral;
