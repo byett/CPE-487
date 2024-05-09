@@ -25,13 +25,17 @@ ARCHITECTURE Behavioral OF Arrow IS
     SIGNAL red_on, blue_on, green_on : STD_LOGIC := '1';
 	BEGIN 	-- Behav start
 	
-    red <= (NOT red_on);
-    green <= (NOT green_on);
-    blue <= (NOT blue_on);
+	
+	red <= (NOT ball_on) AND (red_on);
+	green <= (NOT ball_on) AND (green_on);
+	blue <= (NOT ball_on) AND (blue_on);
+    --red <= (red_on);
+    --green <= (green_on);
+    --blue <= (blue_on);
 	
 	arrow_draw : PROCESS (ball_x, ball_y, pixel_row, pixel_col, arrow_direction, color_chosen, ball_on) IS
 	BEGIN
-	ball_on <= '0';
+	--ball_on <= '0';
 	
 	-- process to draw ball current pixel address is covered by ball position
    IF (arrow_direction = 1) THEN
@@ -106,7 +110,8 @@ ARCHITECTURE Behavioral OF Arrow IS
     ball_on <= '0'; 
     END IF;
     
-        CASE color_chosen IS
+    --Case stuff?
+    CASE color_chosen IS
             WHEN 1 =>
                 red_on <= '1';
                 green_on <= '0';
